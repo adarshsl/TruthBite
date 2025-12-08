@@ -1,13 +1,17 @@
+
 export enum Language {
   ENGLISH = 'English',
   HINDI = 'Hindi',
   TAMIL = 'Tamil',
   TELUGU = 'Telugu',
   KANNADA = 'Kannada',
+  MALAYALAM = 'Malayalam',
   BENGALI = 'Bengali',
   MARATHI = 'Marathi',
   GUJARATI = 'Gujarati'
 }
+
+export type NutriScore = 'A' | 'B' | 'C' | 'D' | 'E';
 
 export interface IngredientAnalysis {
   originalName: string;
@@ -32,6 +36,8 @@ export interface AnalysisResult {
   claims: MarketingClaim[];
   healthScore: number; // 0 to 100
   summary: string;
+  nutriScore?: NutriScore;
+  nutriScoreReason?: string;
   macros: {
     carbs: number;
     protein: number;

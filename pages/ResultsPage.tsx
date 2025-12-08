@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ArrowLeft, Share2, AlertTriangle, CheckCircle, Info, Ban } from 'lucide-react';
-import { AnalysisResult } from '../types';
+import { AnalysisResult, NutriScore } from '../types';
 import { SugarMeter } from '../components/SugarMeter';
 import { Button } from '../components/Button';
 
@@ -15,8 +16,7 @@ export const ResultsPage: React.FC = () => {
     return <Navigate to="/" />;
   }
 
-  // Colors for Pie Chart
-  const COLORS = ['#10b981', '#f59e0b', '#ef4444']; // Green, Amber, Red (Protein, Fat, Carbs approx)
+  const COLORS = ['#10b981', '#f59e0b', '#ef4444'];
   
   const macroData = [
     { name: 'Protein', value: result.macros.protein },
@@ -28,6 +28,30 @@ export const ResultsPage: React.FC = () => {
     if (score >= 70) return 'text-emerald-600 bg-emerald-50';
     if (score >= 40) return 'text-orange-600 bg-orange-50';
     return 'text-rose-600 bg-rose-50';
+  };
+
+  const nutriScoreColors: Record<NutriScore, string> = {
+    'A': 'bg-emerald-600',
+    'B': 'bg-emerald-500',
+    'C': 'bg-yellow-400',
+    'D': 'bg-orange-500',
+    'E': 'bg-rose-600',
+  };
+
+  const nutriScoreTextColors: Record<NutriScore, string> = {
+    'A': 'text-emerald-700',
+    'B': 'text-emerald-600',
+    'C': 'text-yellow-600',
+    'D': 'text-orange-600',
+    'E': 'text-rose-600',
+  };
+
+  const nutriScoreInfo: Record<NutriScore, { label: string; description: string }> = {
+    'A': { label: 'Very Healthy', description: 'Highest nutritional quality. Great for daily consumption.' },
+    'B': { label: 'Healthy', description: 'Good nutritional quality. A solid choice.' },
+    'C': { label: 'Average', description: 'Acceptable in moderation, but check sugar/fat levels.' },
+    'D': { label: 'Low Quality', description: 'Lower nutritional quality. Best enjoyed occasionally.' },
+    'E': { label: 'Poor Quality', description: 'High in calories, sugar, or fat. Limit significantly.' },
   };
 
   return (
@@ -45,10 +69,54 @@ export const ResultsPage: React.FC = () => {
 
       <div className="p-4 space-y-6 max-w-lg mx-auto w-full">
         
+        {/* Nutri-Score Badge */}
+        {result.nutriScore && (
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1">
+                {(['A', 'B', 'C', 'D', 'E'] as NutriScore[]).map((score) => (
+                    <div 
+                    key={score}
+                    className={`
+                        w-8 h-8 flex items-center justify-center font-black text-white rounded-md transition-all
+                        ${result.nutriScore === score ? nutriScoreColors[score] + ' scale-125 z-10 shadow-lg' : 'bg-gray-200 opacity-30 text-xs'}
+                    `}
+                    >
+                    {score}
+                    </div>
+                ))}
+                </div>
+                <div className="text-right">
+                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wide">Nutri-Score</p>
+                    <p className={`text-lg font-bold leading-none ${nutriScoreTextColors[result.nutriScore]}`}>
+                        {nutriScoreInfo[result.nutriScore].label}
+                    </p>
+                </div>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <p className="text-sm text-gray-700 leading-snug">
+                    <span className="font-semibold">Verdict:</span> {nutriScoreInfo[result.nutriScore].description}
+                </p>
+                <div className="mt-2 pt-2 border-t border-gray-200 flex items-start gap-1.5 text-[10px] text-gray-400">
+                    <Info size={12} className="mt-0.5 shrink-0" />
+                    <p>Based on nutrients per 100g (Energy, Sugar, Fat vs Fiber, Protein).</p>
+                </div>
+            </div>
+          </div>
+        )}
+
+        {!result.nutriScore && result.nutriScoreReason && (
+          <div className="bg-gray-100 p-3 rounded-xl border border-gray-200 text-xs text-gray-500">
+            <p className="font-semibold mb-1 uppercase tracking-tight">Nutri-Score Unavailable</p>
+            {result.nutriScoreReason}
+          </div>
+        )}
+
         {/* Health Score Banner */}
-        <div className={`p-4 rounded-2xl flex items-center justify-between ${getHealthScoreColor(result.healthScore)}`}>
+        <div className={`p-4 rounded-2xl flex items-center justify-between shadow-sm border border-transparent ${getHealthScoreColor(result.healthScore)}`}>
            <div>
-             <span className="text-xs uppercase font-bold tracking-wider opacity-80">Health Score</span>
+             <span className="text-xs uppercase font-bold tracking-wider opacity-80">Ingredient Quality</span>
              <h2 className="text-3xl font-bold">{result.healthScore}/100</h2>
            </div>
            <div className="text-right max-w-[60%]">
@@ -161,7 +229,6 @@ export const ResultsPage: React.FC = () => {
                   {ing.description}
                 </p>
                 
-                {/* Banned In Warning */}
                 {ing.bannedIn && ing.bannedIn.length > 0 && (
                   <div className="mt-3 flex items-start gap-2 bg-rose-100/60 p-2.5 rounded-lg border border-rose-200">
                     <Ban className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
