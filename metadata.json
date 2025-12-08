@@ -1,0 +1,7 @@
+{
+  "name": "TruthBite",
+  "description": "Scan food labels to reveal hidden sugar, understand ingredients in your local language, and separate marketing hype from reality.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
