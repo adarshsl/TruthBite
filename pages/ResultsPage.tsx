@@ -2,7 +2,7 @@
 import React from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { ArrowLeft, Share2, AlertTriangle, CheckCircle, Info, Ban } from 'lucide-react';
+import { ArrowLeft, Share2, AlertTriangle, CheckCircle, Info, Ban, AlertCircle } from 'lucide-react';
 import { AnalysisResult, NutriScore } from '../types';
 import { SugarMeter } from '../components/SugarMeter';
 import { Button } from '../components/Button';
@@ -69,6 +69,18 @@ export const ResultsPage: React.FC = () => {
 
       <div className="p-4 space-y-6 max-w-lg mx-auto w-full">
         
+        {/* Caveat / Disclaimer */}
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 shadow-sm">
+          <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-blue-800 leading-relaxed">
+            <p className="font-bold mb-1 uppercase tracking-wide">Accuracy Note</p>
+            <p>
+              This analysis depends on the clarity of your images. Always verify details manually.
+              <span className="block mt-1 font-semibold">Consult an expert or medical professional for accurate dietary advice.</span>
+            </p>
+          </div>
+        </div>
+
         {/* Nutri-Score Badge */}
         {result.nutriScore && (
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
