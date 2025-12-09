@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Scan, Search, Globe, ChevronRight } from 'lucide-react';
 import { Button } from '../components/Button';
+import { Footer } from '../components/Footer';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,7 +14,7 @@ export const HomePage: React.FC = () => {
       <div className="absolute top-[-20%] right-[-20%] w-[80vw] h-[80vw] bg-emerald-100 rounded-full blur-3xl opacity-50 z-0"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-orange-100 rounded-full blur-3xl opacity-50 z-0"></div>
 
-      <div className="relative z-10 flex-1 flex flex-col px-6 pt-12 pb-8">
+      <div className="relative z-10 flex-1 flex flex-col px-6 pt-12">
         
         {/* Header */}
         <div className="mb-12">
@@ -27,7 +29,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* Feature Cards */}
-        <div className="space-y-4 mb-auto">
+        <div className="space-y-4 mb-8">
           <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-emerald-50 flex items-start gap-4">
             <div className="bg-emerald-100 p-3 rounded-full text-emerald-700">
               <Scan size={24} />
@@ -60,7 +62,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* CTA */}
-        <div className="mt-8">
+        <div className="mt-auto pb-8">
           <Button 
             fullWidth 
             onClick={() => navigate('/scan')}

@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, Language } from "../types";
+import { calculateHealthScore, calculateNutriScore } from "../utils/scoreCalculator";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -16,22 +17,18 @@ Your tasks:
    - IF TARGET LANGUAGE IS ENGLISH: All 'translatedName' fields MUST be in English. Do not use Hindi words or script.
 5. Identify ingredients currently banned or strictly regulated in EU/UK/Canada/Japan/California.
 6. Compare Front-of-Pack claims with actual percentage in the ingredients list (Truth vs Hype).
-7. Extract macros per serving.
+7. Extract macros per serving (Carbs, Protein, Fat).
 
-8. COMPUTE NUTRI-SCORE (A-E) BASED ON INTERNATIONAL STANDARDS (PER 100g/100ml):
-   - Analyze Energy (kJ), Sugars (g), Sat Fat (g), and Sodium (mg).
-   - Analyze Protein (g), Fibre (g), and % Fruits/Veg/Nuts.
-   - Use the official European Nutri-Score model points system.
-   - Return 'A', 'B', 'C', 'D', or 'E'.
-   - If labels are missing data required for this (e.g., no Sodium or Saturated Fat listed), return null for nutriScore and explain why in 'nutriScoreReason'.
+8. EXTRACT RAW NUTRITION DATA PER 100g/ml (REQUIRED FOR CALCULATING SCORES EXTERNALLY):
+   - Energy (kJ)
+   - Sugar (g)
+   - Saturated Fat (g)
+   - Sodium (mg)
+   - Fiber (g)
+   - Protein (g)
+   - Fruit/Veg/Nut percentage (estimate from ingredients list if not explicitly stated).
 
-9. CALCULATE OUR TRUTHBITE HEALTH SCORE (0-100) DETERMINISTICALLY:
-   - Start with 100.
-   - SUGAR PENALTY: Deduct 3.5 points for every 1g of sugar per serving.
-   - FIRST INGREDIENT PENALTY: Deduct 30 points if the FIRST ingredient is "Refined Wheat Flour" (Maida), "Sugar", "Liquid Glucose", "Invert Syrup", or "Palm Oil".
-   - RISK PENALTY: Deduct 20 points for EACH ingredient identified with riskLevel 'avoid'.
-   - PROCESSING PENALTY: Deduct 10 points if the ingredient list has > 10 items.
-   - Bonus points for Protein > 5g (+5) or Whole Grain as first ingredient (+5).
+   *If specific per 100g values are missing, try to calculate them from 'per serving' values if available.*
 
 Return PURE JSON matching the schema.
 `;
@@ -75,7 +72,7 @@ export const analyzeImages = async (
         parts: parts,
       },
       config: {
-        temperature: 0,
+        temperature: 0, // Deterministic output
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: {
@@ -85,16 +82,25 @@ export const analyzeImages = async (
             servingSize: { type: Type.STRING },
             sugarPerServingGrams: { type: Type.NUMBER },
             sugarTeaspoons: { type: Type.NUMBER },
-            healthScore: { type: Type.NUMBER },
             summary: { type: Type.STRING },
-            nutriScore: { type: Type.STRING, enum: ["A", "B", "C", "D", "E"] },
-            nutriScoreReason: { type: Type.STRING },
             macros: {
               type: Type.OBJECT,
               properties: {
                 carbs: { type: Type.NUMBER },
                 protein: { type: Type.NUMBER },
                 fat: { type: Type.NUMBER },
+              }
+            },
+            nutritionPer100g: {
+              type: Type.OBJECT,
+              properties: {
+                energyKJ: { type: Type.NUMBER },
+                sugarGrams: { type: Type.NUMBER },
+                satFatGrams: { type: Type.NUMBER },
+                sodiumMg: { type: Type.NUMBER },
+                fiberGrams: { type: Type.NUMBER },
+                proteinGrams: { type: Type.NUMBER },
+                fruitVegPercent: { type: Type.NUMBER },
               }
             },
             ingredients: {
@@ -127,7 +133,29 @@ export const analyzeImages = async (
     });
 
     if (response.text) {
-      return JSON.parse(response.text) as AnalysisResult;
+      const rawResult = JSON.parse(response.text) as AnalysisResult;
+      
+      // Post-processing: Calculate scores deterministically in code
+      const healthScore = calculateHealthScore(
+        rawResult.sugarPerServingGrams,
+        rawResult.ingredients,
+        rawResult.macros
+      );
+
+      // Calculate Nutri-Score if data exists
+      let nutriScoreResult;
+      if (rawResult.nutritionPer100g) {
+        nutriScoreResult = calculateNutriScore(rawResult.nutritionPer100g);
+      } else {
+        nutriScoreResult = { score: undefined, reason: "Label did not provide per 100g data." };
+      }
+
+      return {
+        ...rawResult,
+        healthScore,
+        nutriScore: nutriScoreResult.score,
+        nutriScoreReason: nutriScoreResult.reason
+      };
     }
     throw new Error("No response text generated");
   } catch (error) {

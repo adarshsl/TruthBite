@@ -27,6 +27,16 @@ export interface MarketingClaim {
   verdict: 'verified' | 'misleading' | 'unknown';
 }
 
+export interface NutritionPer100g {
+  energyKJ: number;
+  sugarGrams: number;
+  satFatGrams: number;
+  sodiumMg: number;
+  fiberGrams: number;
+  proteinGrams: number;
+  fruitVegPercent: number;
+}
+
 export interface AnalysisResult {
   productName: string;
   servingSize: string;
@@ -34,10 +44,16 @@ export interface AnalysisResult {
   sugarTeaspoons: number;
   ingredients: IngredientAnalysis[];
   claims: MarketingClaim[];
+  
+  // Scores (calculated deterministically now)
   healthScore: number; // 0 to 100
   summary: string;
   nutriScore?: NutriScore;
   nutriScoreReason?: string;
+  
+  // Raw data extracted by AI
+  nutritionPer100g?: NutritionPer100g;
+
   macros: {
     carbs: number;
     protein: number;
