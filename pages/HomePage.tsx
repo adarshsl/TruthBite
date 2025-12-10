@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Scan, Search, Globe, ChevronRight, Check } from 'lucide-react';
+import { Scan, Search, Globe, ChevronRight } from 'lucide-react';
 import { Button } from '../components/Button';
+import { Logo } from '../components/Logo';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,10 +18,8 @@ export const HomePage: React.FC = () => {
         {/* Header with Logo */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-2">
-            {/* Brand Logo: Red Circle with Checkmark */}
-            <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white shadow-red-200 shadow-md">
-              <Check size={24} strokeWidth={3} />
-            </div>
+            {/* Brand Logo */}
+            <Logo className="w-12 h-12 drop-shadow-md" />
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">TruthBite</h1>
           </div>
           <p className="text-gray-500 text-lg leading-relaxed">

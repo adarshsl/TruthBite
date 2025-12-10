@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
-import { Check } from 'lucide-react';
 import { AnalysisResult, NutriScore } from '../types';
+import { Logo } from './Logo';
 
 interface ShareCardProps {
   result: AnalysisResult;
@@ -31,9 +31,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(({ result },
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white shadow-sm">
-          <Check size={18} strokeWidth={3} />
-        </div>
+        <Logo className="w-10 h-10" />
         <h1 className="text-xl font-bold text-gray-900 tracking-tight">TruthBite</h1>
       </div>
 
