@@ -9,12 +9,21 @@ const SYSTEM_INSTRUCTION = `
 You are a truthful, friendly Indian nutritionist and food scientist. Your goal is to decode food labels for Indian families.
 Analyze the provided product images (Front of pack, Back of pack/Nutrition label).
 
+DATA SOURCE PROTOCOL:
+1. EXTRACT 'nutritionPer100g' and 'ingredients' ONLY from the Nutrition Table/List image (Back). 
+   - You might receive multiple images for the back of the pack. Combine information from them if the label is split.
+   - If the word 'Ingredients' is obscured, look for the longest block of text containing commas (e.g., "Refined Wheat Flour, Sugar, Palm Oil..."). 
+   - NEVER use Front-of-Pack text to populate ingredient/nutrition fields.
+   - If ingredients are unreadable in ALL back images, return an empty array for ingredients.
+2. EXTRACT 'productName' and verify 'claims' using the Front-of-Pack images (if provided).
+
 Your tasks:
 1. Identify the product name.
-2. Extract sugar per serving. If per serving is not explicit, calculate it based on a typical serving size for that product type.
+2. Extract sugar per serving. If per serving is not explicit, calculate it based on a typical serving size.
 3. Convert sugar grams to teaspoons (divide by 4.2).
 4. Analyze the Ingredients List. Translate names to the requested target language.
    - IF TARGET LANGUAGE IS ENGLISH: All 'translatedName' fields MUST be in English. Do not use Hindi words or script.
+   - KEEP DESCRIPTIONS SHORT AND CONCISE (max 15 words). Avoid long paragraphs.
 5. Identify ingredients currently banned or strictly regulated in EU/UK/Canada/Japan/California.
 6. Compare Front-of-Pack claims with actual percentage in the ingredients list (Truth vs Hype).
 7. Extract macros per serving (Carbs, Protein, Fat).
@@ -28,40 +37,48 @@ Your tasks:
    - Protein (g)
    - Fruit/Veg/Nut percentage (estimate from ingredients list if not explicitly stated).
 
-   *If specific per 100g values are missing, try to calculate them from 'per serving' values if available.*
-
 Return PURE JSON matching the schema.
 `;
 
 export const analyzeImages = async (
-  frontImageBase64: string | null,
-  backImageBase64: string,
+  frontImages: string[], // Array of base64 strings
+  backImages: string[],  // Array of base64 strings
   targetLanguage: Language
 ): Promise<AnalysisResult> => {
   
   const parts = [];
 
-  if (backImageBase64) {
-    parts.push({
-      inlineData: {
-        mimeType: "image/jpeg",
-        data: backImageBase64.split(",")[1] || backImageBase64,
-      },
-    });
-  }
+  // Add all back images
+  backImages.forEach(img => {
+    const base64Data = img.split(",")[1];
+    if (base64Data) {
+      parts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Data,
+        },
+      });
+    }
+  });
 
-  if (frontImageBase64) {
-    parts.push({
-      inlineData: {
-        mimeType: "image/jpeg",
-        data: frontImageBase64.split(",")[1] || frontImageBase64,
-      },
-    });
-  }
+  // Add all front images
+  frontImages.forEach(img => {
+    const base64Data = img.split(",")[1];
+    if (base64Data) {
+      parts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Data,
+        },
+      });
+    }
+  });
 
   parts.push({
     text: `Analyze these images. User speaks ${targetLanguage}. 
     STRICT LANGUAGE REQUIREMENT: Ingredient names must be in ${targetLanguage}. No vernacular if language is English.
+    There are ${backImages.length} images of the Back/Nutrition panel and ${frontImages.length} images of the Front panel.
+    Prioritize the Back panel images for data extraction.
     `
   });
 
@@ -73,6 +90,7 @@ export const analyzeImages = async (
       },
       config: {
         temperature: 0, // Deterministic output
+        maxOutputTokens: 8192, // Prevent truncation
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: {
@@ -135,14 +153,17 @@ export const analyzeImages = async (
     if (response.text) {
       const rawResult = JSON.parse(response.text) as AnalysisResult;
       
-      // Post-processing: Calculate scores deterministically in code
+      const safeIngredients = rawResult.ingredients || [];
+      const safeMacros = rawResult.macros || { carbs: 0, protein: 0, fat: 0 };
+      const safeClaims = rawResult.claims || [];
+      const safeSugar = rawResult.sugarPerServingGrams || 0;
+      
       const healthScore = calculateHealthScore(
-        rawResult.sugarPerServingGrams,
-        rawResult.ingredients,
-        rawResult.macros
+        safeSugar,
+        safeIngredients,
+        safeMacros
       );
 
-      // Calculate Nutri-Score if data exists
       let nutriScoreResult;
       if (rawResult.nutritionPer100g) {
         nutriScoreResult = calculateNutriScore(rawResult.nutritionPer100g);
@@ -152,6 +173,9 @@ export const analyzeImages = async (
 
       return {
         ...rawResult,
+        ingredients: safeIngredients,
+        claims: safeClaims,
+        macros: safeMacros,
         healthScore,
         nutriScore: nutriScoreResult.score,
         nutriScoreReason: nutriScoreResult.reason

@@ -93,14 +93,10 @@ export const calculateNutriScore = (data: NutritionPer100g): { score: NutriScore
   // If N points >= 11, Protein points are not counted unless FVN points are >= 5
   let finalScore = 0;
   if (nPoints >= 11 && fvn < 80) {
-    finalScore = nPoints - (pPoints - (protein > 1.6 ? Math.floor(protein/1.6) : 0)); // Roughly excluding protein points
-    // Simplified: Just subtract Fiber and FVN points
-    // finalScore = nPoints - (fiber_points + fvn_points)
-    // For this implementation, we will use the standard: Score = N - P
-    // But strictly speaking, if N >= 11, P(protein) is only counted if P(fruit) = 5.
+    finalScore = nPoints - (pPoints - (protein > 1.6 ? Math.floor(protein/1.6) : 0)); 
+  } else {
+    finalScore = nPoints - pPoints;
   }
-  
-  finalScore = nPoints - pPoints;
 
   // 4. Map to Letter
   let grade: NutriScore = 'E';
@@ -122,10 +118,18 @@ export const calculateHealthScore = (
   ingredients: IngredientAnalysis[],
   macros: { protein: number }
 ): number => {
+  
+  // FAIL-SAFE: If ingredients are missing/empty, return 0.
+  // This prevents products from getting a 100/100 score simply because OCR failed.
+  if (!ingredients || ingredients.length === 0) {
+    return 0;
+  }
+
   let score = 100;
   const reasons: string[] = [];
 
   // 1. Sugar Penalty
+  // Increased severity: Sugar is often the biggest issue
   const sugarPenalty = sugarGramsPerServing * 3.5;
   if (sugarPenalty > 0) {
     score -= sugarPenalty;
@@ -133,31 +137,37 @@ export const calculateHealthScore = (
   }
 
   // 2. Ingredient List Analysis
-  if (ingredients.length > 0) {
-    const firstIng = ingredients[0].originalName.toLowerCase();
-    const badStarters = ['sugar', 'syrup', 'glucose', 'maida', 'refined wheat flour', 'palm oil', 'invert sugar'];
-    
-    // First Ingredient Penalty
-    if (badStarters.some(bad => firstIng.includes(bad))) {
-      score -= 30;
-      reasons.push("-30 for unhealthy primary ingredient");
-    }
+  const firstIng = ingredients[0].originalName.toLowerCase();
+  
+  // Expanded list of cheap/unhealthy fillers
+  const badStarters = [
+    'sugar', 'syrup', 'glucose', 'liquid glucose', 'invert sugar', 
+    'maltodextrin', 'corn flour', 'starch',
+    'maida', 'refined wheat flour', 
+    'palm oil', 'palmolein', 'vegetable fat', 'hydrogenated'
+  ];
+  
+  // First Ingredient Penalty (Highest Impact)
+  if (badStarters.some(bad => firstIng.includes(bad))) {
+    score -= 30;
+    reasons.push("-30 for unhealthy primary ingredient");
+  }
 
-    // Risk Penalty
-    let riskCount = 0;
-    ingredients.forEach(ing => {
-        if (ing.riskLevel === 'avoid') {
-            score -= 20;
-            riskCount++;
-        }
-    });
-    if (riskCount > 0) reasons.push(`-${riskCount * 20} for risky additives`);
+  // Risk Penalty
+  let riskCount = 0;
+  ingredients.forEach(ing => {
+      if (ing.riskLevel === 'avoid') {
+          score -= 20;
+          riskCount++;
+      }
+  });
+  if (riskCount > 0) reasons.push(`-${riskCount * 20} for risky additives`);
 
-    // Processing Penalty
-    if (ingredients.length > 10) {
-        score -= 10;
-        reasons.push("-10 for high processing");
-    }
+  // Processing Penalty
+  // Ultra-processed foods usually have long lists
+  if (ingredients.length > 10) {
+      score -= 10;
+      reasons.push("-10 for high processing");
   }
 
   // 3. Bonus Points

@@ -1,37 +1,38 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Scan, Search, Globe, ChevronRight } from 'lucide-react';
+import { Scan, Search, Globe, ChevronRight, Check } from 'lucide-react';
 import { Button } from '../components/Button';
-import { Footer } from '../components/Footer';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
-      {/* Decorative background blobs */}
-      <div className="absolute top-[-20%] right-[-20%] w-[80vw] h-[80vw] bg-emerald-100 rounded-full blur-3xl opacity-50 z-0"></div>
-      <div className="absolute bottom-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-orange-100 rounded-full blur-3xl opacity-50 z-0"></div>
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-[#FDFBF7]">
+      {/* Decorative background blobs - Warmer tones */}
+      <div className="absolute top-[-20%] right-[-20%] w-[80vw] h-[80vw] bg-red-100 rounded-full blur-3xl opacity-40 z-0"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-orange-100 rounded-full blur-3xl opacity-40 z-0"></div>
 
       <div className="relative z-10 flex-1 flex flex-col px-6 pt-12">
         
-        {/* Header */}
+        {/* Header with Logo */}
         <div className="mb-12">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">T</div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">TruthBite</h1>
+          <div className="flex items-center gap-3 mb-2">
+            {/* Brand Logo: Red Circle with Checkmark */}
+            <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white shadow-red-200 shadow-md">
+              <Check size={24} strokeWidth={3} />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">TruthBite</h1>
           </div>
           <p className="text-gray-500 text-lg leading-relaxed">
             Scan labels. Reveal the truth.<br/>
-            <span className="text-emerald-700 font-medium">Eat better, today.</span>
+            <span className="text-red-500 font-medium">Eat better, today.</span>
           </p>
         </div>
 
         {/* Feature Cards */}
         <div className="space-y-4 mb-8">
-          <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-emerald-50 flex items-start gap-4">
-            <div className="bg-emerald-100 p-3 rounded-full text-emerald-700">
+          <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-red-50 flex items-start gap-4">
+            <div className="bg-red-100 p-3 rounded-full text-red-600">
               <Scan size={24} />
             </div>
             <div>
@@ -41,7 +42,7 @@ export const HomePage: React.FC = () => {
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-orange-50 flex items-start gap-4">
-            <div className="bg-orange-100 p-3 rounded-full text-orange-700">
+            <div className="bg-orange-100 p-3 rounded-full text-orange-600">
               <Search size={24} />
             </div>
             <div>
@@ -51,7 +52,7 @@ export const HomePage: React.FC = () => {
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-blue-50 flex items-start gap-4">
-            <div className="bg-blue-100 p-3 rounded-full text-blue-700">
+            <div className="bg-blue-100 p-3 rounded-full text-blue-600">
               <Globe size={24} />
             </div>
             <div>
@@ -66,7 +67,7 @@ export const HomePage: React.FC = () => {
           <Button 
             fullWidth 
             onClick={() => navigate('/scan')}
-            className="h-14 text-lg shadow-emerald-200 shadow-lg"
+            className="h-14 text-lg shadow-red-200 shadow-lg"
           >
             Start Scanning <ChevronRight size={20} />
           </Button>

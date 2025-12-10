@@ -1,16 +1,26 @@
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { ArrowLeft, Share2, AlertTriangle, CheckCircle, Info, Ban, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Share2, AlertTriangle, CheckCircle, Info, Ban, AlertCircle, Loader2, Camera } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import { AnalysisResult, NutriScore } from '../types';
 import { SugarMeter } from '../components/SugarMeter';
 import { Button } from '../components/Button';
+import { ShareCard } from '../components/ShareCard';
 
 export const ResultsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const result = location.state?.result as AnalysisResult | undefined;
+  
+  // Retrieve result and hasFrontImage from location state
+  const state = location.state as { result: AnalysisResult; hasFrontImage: boolean } | undefined;
+  const result = state?.result;
+  const hasFrontImage = state?.hasFrontImage;
+  
+  // Ref for the hidden share card
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   if (!result) {
     return <Navigate to="/" />;
@@ -24,7 +34,11 @@ export const ResultsPage: React.FC = () => {
     { name: 'Carbs', value: result.macros.carbs },
   ].filter(d => d.value > 0);
 
+  // Keep Semantic Green/Red for Health Scores
   const getHealthScoreColor = (score: number) => {
+    // New: Handle missing data (score 0)
+    if (score === 0) return 'text-gray-600 bg-gray-100';
+
     if (score >= 70) return 'text-emerald-600 bg-emerald-50';
     if (score >= 40) return 'text-orange-600 bg-orange-50';
     return 'text-rose-600 bg-rose-50';
@@ -54,31 +68,123 @@ export const ResultsPage: React.FC = () => {
     'E': { label: 'Poor Quality', description: 'High in calories, sugar, or fat. Limit significantly.' },
   };
 
+  const handleShare = async () => {
+    if (!shareCardRef.current || isSharing) return;
+    
+    setIsSharing(true);
+    
+    try {
+      // 1. Generate Canvas from the hidden component
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 2, // Retine quality
+        backgroundColor: '#FDFBF7', // Match the card bg
+        useCORS: true,
+        logging: false
+      });
+
+      // 2. Convert to Blob
+      // Using toDataURL -> fetch -> blob is often more robust across browsers than toBlob directly
+      const dataUrl = canvas.toDataURL('image/png');
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+
+      // Simple alphanumeric filename to avoid email client issues
+      const cleanName = result.productName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase().substring(0, 20);
+      const file = new File([blob], `truthbite_${cleanName}.png`, { type: 'image/png' });
+
+      // 3. Share logic
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          // Note: We cannot strictly force "WhatsApp only" via navigator.share,
+          // but we can encourage it via UI. The OS handles the app selection.
+          await navigator.share({
+            files: [file],
+            title: `TruthBite: ${result.productName}`,
+            text: `Analyzed with TruthBite. Check out this food analysis!`,
+          });
+        } catch (shareError) {
+            // Ignore abort errors (user cancelled share sheet)
+            if ((shareError as Error).name !== 'AbortError') {
+              console.error('Share failed', shareError);
+              alert("Share failed. Try taking a screenshot instead.");
+            }
+        }
+      } else {
+        // Fallback: Download
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `truthbite_${cleanName}.png`;
+        link.click();
+        alert("Image downloaded. You can now share it on WhatsApp Web.");
+      }
+    } catch (error) {
+      console.error("Error generating share image:", error);
+      alert("Could not generate image. Please try again.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-8">
+    <div className="min-h-screen bg-[#FDFBF7] flex flex-col pb-8">
+      {/* Hidden Share Card Component */}
+      <ShareCard ref={shareCardRef} result={result} />
+
       {/* Header */}
       <div className="bg-white px-4 py-4 shadow-sm flex items-center justify-between sticky top-0 z-30">
-        <button onClick={() => navigate('/scan')} className="p-2 -ml-2 text-gray-600">
+        <button onClick={() => navigate('/scan')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full">
           <ArrowLeft />
         </button>
-        <h1 className="text-sm font-bold text-gray-800 truncate max-w-[200px]">{result.productName}</h1>
-        <button className="p-2 text-gray-600">
-          <Share2 size={20} />
+        <h1 className="text-sm font-bold text-gray-800 truncate max-w-[150px]">{result.productName}</h1>
+        <button 
+          onClick={handleShare} 
+          disabled={isSharing}
+          // Changed to WhatsApp Green styling
+          className="flex items-center gap-2 px-3 py-1.5 bg-[#25D366] text-white rounded-full text-xs font-bold hover:bg-[#20bd5a] transition-colors shadow-sm disabled:opacity-50"
+        >
+          {isSharing ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <>
+              <Share2 size={16} />
+              <span>WhatsApp</span>
+            </>
+          )}
         </button>
       </div>
 
       <div className="p-4 space-y-6 max-w-lg mx-auto w-full">
         
-        {/* Caveat / Disclaimer */}
-        <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 shadow-sm">
-          <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-          <div className="text-xs text-blue-800 leading-relaxed">
-            <p className="font-bold mb-1 uppercase tracking-wide">Accuracy Note</p>
-            <p>
-              This analysis depends on the clarity of your images. Always verify details manually.
-              <span className="block mt-1 font-semibold">Consult an expert or medical professional for accurate dietary advice.</span>
-            </p>
+        {/* Caveat / Disclaimer + Image Source Info */}
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl shadow-sm">
+          <div className="flex gap-3 mb-3">
+            <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-800 leading-relaxed">
+              <p className="font-bold mb-1 uppercase tracking-wide">Accuracy Note</p>
+              <p>
+                Analysis based on image clarity. 
+                <span className="font-semibold"> Consult a professional for dietary advice.</span>
+              </p>
+            </div>
           </div>
+          
+          {/* Image Source Indicator */}
+          <div className="flex items-center gap-2 pt-3 border-t border-blue-100">
+            <Camera size={14} className="text-blue-400" />
+            <span className="text-xs font-medium text-blue-600">
+              Analyzed: 
+              {hasFrontImage ? (
+                <span className="ml-1 text-emerald-600 font-bold">Front & Back Panels</span>
+              ) : (
+                <span className="ml-1 text-orange-600 font-bold">Back Panel Only</span>
+              )}
+            </span>
+          </div>
+          {!hasFrontImage && (
+            <p className="text-[10px] text-blue-400 mt-1 ml-6">
+              Tip: Upload Front of Pack to verify marketing claims.
+            </p>
+          )}
         </div>
 
         {/* Nutri-Score Badge */}
@@ -127,13 +233,30 @@ export const ResultsPage: React.FC = () => {
 
         {/* Health Score Banner */}
         <div className={`p-4 rounded-2xl flex items-center justify-between shadow-sm border border-transparent ${getHealthScoreColor(result.healthScore)}`}>
-           <div>
-             <span className="text-xs uppercase font-bold tracking-wider opacity-80">Ingredient Quality</span>
-             <h2 className="text-3xl font-bold">{result.healthScore}/100</h2>
-           </div>
-           <div className="text-right max-w-[60%]">
-             <p className="text-sm font-medium leading-tight">{result.summary}</p>
-           </div>
+           {result.healthScore > 0 ? (
+             <>
+                <div>
+                  <span className="text-xs uppercase font-bold tracking-wider opacity-80">Ingredient Quality</span>
+                  <h2 className="text-3xl font-bold">{result.healthScore}/100</h2>
+                </div>
+                <div className="text-right max-w-[60%]">
+                  <p className="text-sm font-medium leading-tight">{result.summary}</p>
+                </div>
+             </>
+           ) : (
+             <>
+               <div className="flex items-center gap-3">
+                 <AlertTriangle size={32} className="text-gray-400" />
+                 <div>
+                   <span className="text-xs uppercase font-bold tracking-wider opacity-80 text-gray-500">Scan Failed</span>
+                   <h2 className="text-xl font-bold text-gray-700">Data Missing</h2>
+                 </div>
+               </div>
+               <div className="text-right max-w-[50%]">
+                 <p className="text-xs text-gray-500 leading-tight">We couldn't read the ingredients. Please retake the photo.</p>
+               </div>
+             </>
+           )}
         </div>
 
         {/* Sugar Section */}
@@ -256,6 +379,13 @@ export const ResultsPage: React.FC = () => {
                 )}
               </div>
             ))}
+            {result.ingredients.length === 0 && (
+              <div className="p-8 text-center text-gray-500">
+                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">We couldn't read the ingredients list.</p>
+                <p className="text-xs mt-1">Try scanning closer to the back of the pack.</p>
+              </div>
+            )}
           </div>
         </section>
 

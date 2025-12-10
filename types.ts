@@ -63,8 +63,8 @@ export interface AnalysisResult {
 
 export interface AppState {
   language: Language;
-  frontImage: string | null; // base64
-  backImage: string | null; // base64
+  frontImages: string[]; // Changed to array
+  backImages: string[]; // Changed to array
   isAnalyzing: boolean;
   result: AnalysisResult | null;
   error: string | null;

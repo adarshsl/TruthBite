@@ -113,6 +113,10 @@ export const MethodologyPage: React.FC = () => {
           </p>
           
           <ul className="space-y-3 text-sm">
+             <li className="flex gap-3 items-start bg-blue-50 p-2 rounded-lg">
+              <span className="font-bold text-blue-600 whitespace-nowrap">Check</span>
+              <span>If we cannot identify the Ingredient List (e.g., blurry image), the <strong>Score defaults to 0</strong> to prevent false positives.</span>
+            </li>
             <li className="flex gap-3">
               <span className="font-bold text-emerald-600 whitespace-nowrap">Start</span>
               <span>Every product starts at <strong>100 points</strong>.</span>
@@ -123,7 +127,7 @@ export const MethodologyPage: React.FC = () => {
             </li>
             <li className="flex gap-3">
               <span className="font-bold text-rose-500 whitespace-nowrap">-30 pts</span>
-              <span>If the <strong>first ingredient</strong> is Sugar, Maida (Refined Flour), Palm Oil, or Glucose Syrup.</span>
+              <span>If the <strong>first ingredient</strong> is Sugar, Maida, Palm Oil, Glucose Syrup, Maltodextrin, or Liquid Glucose.</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold text-rose-500 whitespace-nowrap">-20 pts</span>

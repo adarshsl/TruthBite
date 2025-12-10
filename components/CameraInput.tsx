@@ -1,16 +1,25 @@
-import React, { useRef, useState } from 'react';
-import { Camera, Upload, X, Check } from 'lucide-react';
+
+import React, { useRef } from 'react';
+import { Camera, X, Plus } from 'lucide-react';
 
 interface CameraInputProps {
   label: string;
   subLabel?: string;
-  onImageSelected: (base64: string | null) => void;
+  images: string[];
+  onImagesChange: (images: string[]) => void;
   required?: boolean;
+  maxImages?: number;
 }
 
-export const CameraInput: React.FC<CameraInputProps> = ({ label, subLabel, onImageSelected, required }) => {
+export const CameraInput: React.FC<CameraInputProps> = ({ 
+  label, 
+  subLabel, 
+  images, 
+  onImagesChange, 
+  required,
+  maxImages = 3 
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -18,17 +27,19 @@ export const CameraInput: React.FC<CameraInputProps> = ({ label, subLabel, onIma
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
-        setPreview(base64);
-        onImageSelected(base64);
+        // Append new image to the array
+        if (images.length < maxImages) {
+          onImagesChange([...images, base64]);
+        }
       };
       reader.readAsDataURL(file);
     }
+    // Reset input so the same file can be selected again if needed
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const clearImage = () => {
-    setPreview(null);
-    onImageSelected(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  const removeImage = (indexToRemove: number) => {
+    onImagesChange(images.filter((_, index) => index !== indexToRemove));
   };
 
   return (
@@ -38,54 +49,65 @@ export const CameraInput: React.FC<CameraInputProps> = ({ label, subLabel, onIma
           {label}
           {required && <span className="text-rose-500 text-xs font-bold bg-rose-50 px-2 py-0.5 rounded-full">REQUIRED</span>}
         </label>
-        {preview && (
-          <button onClick={clearImage} className="text-xs text-rose-600 font-medium flex items-center hover:underline">
-            <X size={14} className="mr-1" /> Remove
-          </button>
-        )}
+        <span className="text-xs text-gray-400">
+          {images.length}/{maxImages} photos
+        </span>
       </div>
       
       {subLabel && <p className="text-sm text-gray-500 mb-3">{subLabel}</p>}
 
-      <div 
-        className={`relative h-48 rounded-2xl border-2 border-dashed transition-colors overflow-hidden
-        ${preview ? 'border-emerald-500 bg-emerald-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400'}`}
-      >
-        {preview ? (
-          <img 
-            src={preview} 
-            alt="Preview" 
-            className="w-full h-full object-cover"
-          />
-        ) : (
+      {/* Image Grid / List */}
+      <div className="flex flex-wrap gap-3">
+        {images.map((img, idx) => (
+          <div key={idx} className="relative w-24 h-24 rounded-xl border border-gray-200 overflow-hidden shadow-sm group">
+            <img 
+              src={img} 
+              alt={`Scan ${idx + 1}`} 
+              className="w-full h-full object-cover"
+            />
+            <button 
+              onClick={() => removeImage(idx)}
+              className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-rose-500 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+
+        {/* Add Button */}
+        {images.length < maxImages && (
           <div 
-            className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+            className={`w-24 h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors
+            ${images.length === 0 && required 
+              ? 'border-gray-300 bg-white hover:bg-gray-50' 
+              : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+            }`}
             onClick={() => fileInputRef.current?.click()}
           >
-            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
-              <Camera className="text-emerald-600" size={24} />
-            </div>
-            <p className="text-sm font-medium text-gray-600">Tap to Scan</p>
-            <p className="text-xs text-gray-400 mt-1">or upload photo</p>
-          </div>
-        )}
-
-        {/* Hidden Input */}
-        <input 
-          ref={fileInputRef}
-          type="file" 
-          accept="image/*" 
-          capture="environment"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-
-        {preview && (
-          <div className="absolute top-2 right-2 bg-emerald-500 text-white p-1 rounded-full shadow-md">
-            <Check size={16} />
+            {images.length === 0 ? (
+              <>
+                <Camera className="text-red-500 mb-1" size={24} />
+                <span className="text-xs font-medium text-gray-600">Scan</span>
+              </>
+            ) : (
+              <>
+                <Plus className="text-gray-400 mb-1" size={24} />
+                <span className="text-xs font-medium text-gray-500">Add</span>
+              </>
+            )}
           </div>
         )}
       </div>
+
+      {/* Hidden Input */}
+      <input 
+        ref={fileInputRef}
+        type="file" 
+        accept="image/*" 
+        capture="environment"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 };
