@@ -8,10 +8,12 @@ import { AnalysisResult, NutriScore } from '../types';
 import { SugarMeter } from '../components/SugarMeter';
 import { Button } from '../components/Button';
 import { ShareCard } from '../components/ShareCard';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const ResultsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   
   // Retrieve result and hasFrontImage from location state
   const state = location.state as { result: AnalysisResult; hasFrontImage: boolean } | undefined;
@@ -26,12 +28,13 @@ export const ResultsPage: React.FC = () => {
     return <Navigate to="/" />;
   }
 
-  const COLORS = ['#10b981', '#f59e0b', '#ef4444'];
+  // Calculate totals and prepare data with explicit colors
+  const totalMacros = result.macros.protein + result.macros.fat + result.macros.carbs;
   
   const macroData = [
-    { name: 'Protein', value: result.macros.protein },
-    { name: 'Fat', value: result.macros.fat },
-    { name: 'Carbs', value: result.macros.carbs },
+    { name: t('protein'), value: result.macros.protein, color: '#10b981' }, // Emerald
+    { name: t('fat'), value: result.macros.fat, color: '#f59e0b' },     // Amber
+    { name: t('carbs'), value: result.macros.carbs, color: '#ef4444' },   // Red
   ].filter(d => d.value > 0);
 
   // Keep Semantic Green/Red for Health Scores
@@ -147,7 +150,7 @@ export const ResultsPage: React.FC = () => {
           ) : (
             <>
               <Share2 size={16} />
-              <span>WhatsApp</span>
+              <span>{t('shareWhatsapp')}</span>
             </>
           )}
         </button>
@@ -160,9 +163,9 @@ export const ResultsPage: React.FC = () => {
           <div className="flex gap-3 mb-3">
             <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div className="text-xs text-blue-800 leading-relaxed">
-              <p className="font-bold mb-1 uppercase tracking-wide">Accuracy Note</p>
+              <p className="font-bold mb-1 uppercase tracking-wide">{t('accuracyNote')}</p>
               <p>
-                Analysis based on image clarity. 
+                {t('accuracyDesc')} 
                 <span className="font-semibold"> Consult a professional for dietary advice.</span>
               </p>
             </div>
@@ -172,17 +175,17 @@ export const ResultsPage: React.FC = () => {
           <div className="flex items-center gap-2 pt-3 border-t border-blue-100">
             <Camera size={14} className="text-blue-400" />
             <span className="text-xs font-medium text-blue-600">
-              Analyzed: 
+              {t('analyzed')} 
               {hasFrontImage ? (
-                <span className="ml-1 text-emerald-600 font-bold">Front & Back Panels</span>
+                <span className="ml-1 text-emerald-600 font-bold">{t('frontAndBack')}</span>
               ) : (
-                <span className="ml-1 text-orange-600 font-bold">Back Panel Only</span>
+                <span className="ml-1 text-orange-600 font-bold">{t('backOnly')}</span>
               )}
             </span>
           </div>
           {!hasFrontImage && (
             <p className="text-[10px] text-blue-400 mt-1 ml-6">
-              Tip: Upload Front of Pack to verify marketing claims.
+              {t('uploadFrontTip')}
             </p>
           )}
         </div>
@@ -205,7 +208,7 @@ export const ResultsPage: React.FC = () => {
                 ))}
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wide">Nutri-Score</p>
+                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wide">{t('nutriScore')}</p>
                     <p className={`text-lg font-bold leading-none ${nutriScoreTextColors[result.nutriScore]}`}>
                         {nutriScoreInfo[result.nutriScore].label}
                     </p>
@@ -236,7 +239,7 @@ export const ResultsPage: React.FC = () => {
            {result.healthScore > 0 ? (
              <>
                 <div>
-                  <span className="text-xs uppercase font-bold tracking-wider opacity-80">Ingredient Quality</span>
+                  <span className="text-xs uppercase font-bold tracking-wider opacity-80">{t('healthScore')}</span>
                   <h2 className="text-3xl font-bold">{result.healthScore}/100</h2>
                 </div>
                 <div className="text-right max-w-[60%]">
@@ -248,8 +251,8 @@ export const ResultsPage: React.FC = () => {
                <div className="flex items-center gap-3">
                  <AlertTriangle size={32} className="text-gray-400" />
                  <div>
-                   <span className="text-xs uppercase font-bold tracking-wider opacity-80 text-gray-500">Scan Failed</span>
-                   <h2 className="text-xl font-bold text-gray-700">Data Missing</h2>
+                   <span className="text-xs uppercase font-bold tracking-wider opacity-80 text-gray-500">{t('scanFailed')}</span>
+                   <h2 className="text-xl font-bold text-gray-700">{t('dataMissing')}</h2>
                  </div>
                </div>
                <div className="text-right max-w-[50%]">
@@ -269,29 +272,29 @@ export const ResultsPage: React.FC = () => {
           <section>
             <h3 className="text-gray-800 font-bold text-lg mb-3 flex items-center gap-2">
               <span className="bg-indigo-100 text-indigo-700 p-1 rounded-md"><Info size={16}/></span>
-              Truth vs Hype
+              {t('truthVsHypeTitle')}
             </h3>
             <div className="space-y-3">
               {result.claims.map((claim, idx) => (
                 <div key={idx} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="flex-1">
-                      <p className="text-gray-500 text-xs font-semibold uppercase mb-1">Claim</p>
+                      <p className="text-gray-500 text-xs font-semibold uppercase mb-1">{t('claim')}</p>
                       <p className="font-medium text-gray-900">"{claim.claim}"</p>
                     </div>
                     <div className="w-px bg-gray-200 self-stretch mx-1"></div>
                     <div className="flex-1">
-                      <p className="text-indigo-600 text-xs font-semibold uppercase mb-1">Reality</p>
+                      <p className="text-indigo-600 text-xs font-semibold uppercase mb-1">{t('reality')}</p>
                       <p className="font-medium text-indigo-900">{claim.reality}</p>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-sm">
                     {claim.verdict === 'misleading' ? (
-                      <span className="text-rose-600 font-bold flex items-center gap-1"><AlertTriangle size={14}/> Potentially Misleading</span>
+                      <span className="text-rose-600 font-bold flex items-center gap-1"><AlertTriangle size={14}/> {t('misleading')}</span>
                     ) : claim.verdict === 'verified' ? (
-                      <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle size={14}/> Verified</span>
+                      <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle size={14}/> {t('verified')}</span>
                     ) : (
-                      <span className="text-gray-500 font-medium">Unclear disclosure</span>
+                      <span className="text-gray-500 font-medium">{t('unclear')}</span>
                     )}
                   </div>
                 </div>
@@ -300,47 +303,78 @@ export const ResultsPage: React.FC = () => {
           </section>
         )}
 
-        {/* Macro Chart */}
+        {/* Macro Chart & Table */}
         <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-           <h3 className="text-gray-800 font-bold text-lg mb-4">Macro Balance</h3>
-           <div className="flex items-center">
-             <div className="h-32 w-32 relative">
+           <h3 className="text-gray-800 font-bold text-lg mb-4">{t('macroTitle')}</h3>
+           
+           <div className="flex flex-col sm:flex-row items-center gap-6">
+             {/* Chart Section */}
+             <div className="h-48 w-48 relative shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={macroData}
-                      innerRadius={35}
-                      outerRadius={55}
+                      innerRadius={40}
+                      outerRadius={70}
                       paddingAngle={5}
                       dataKey="value"
                       stroke="none"
                     >
                       {macroData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip 
+                       formatter={(value: number) => [`${value}g`, '']}
+                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
              </div>
-             <div className="ml-6 space-y-2 flex-1">
-                {macroData.map((entry, index) => (
-                  <div key={entry.name} className="flex justify-between items-center text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
-                      <span className="text-gray-600">{entry.name}</span>
-                    </div>
-                    <span className="font-semibold">{entry.value}g</span>
-                  </div>
-                ))}
+
+             {/* Table Section */}
+             <div className="w-full">
+                <div className="overflow-hidden border border-gray-100 rounded-xl">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs uppercase tracking-wider">Macro</th>
+                        <th className="px-4 py-2 text-right text-xs uppercase tracking-wider">Qty</th>
+                        <th className="px-4 py-2 text-right text-xs uppercase tracking-wider">%</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {macroData.map((entry) => {
+                        const percent = totalMacros > 0 ? (entry.value / totalMacros) * 100 : 0;
+                        return (
+                          <tr key={entry.name}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: entry.color }}></div>
+                                <span className="text-gray-700 font-medium">{entry.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-600">
+                              {entry.value}g
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-500 font-mono">
+                              {percent.toFixed(0)}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
              </div>
            </div>
-           <p className="text-xs text-gray-400 mt-4 text-center">Values per serving ({result.servingSize})</p>
+           
+           <p className="text-xs text-gray-400 mt-4 text-center sm:text-left">{t('perServing')} ({result.servingSize})</p>
         </section>
 
         {/* Ingredients List */}
         <section>
-          <h3 className="text-gray-800 font-bold text-lg mb-3">Ingredients Decoder</h3>
+          <h3 className="text-gray-800 font-bold text-lg mb-3">{t('ingredientsTitle')}</h3>
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             {result.ingredients.map((ing, idx) => (
               <div 
@@ -369,7 +403,7 @@ export const ResultsPage: React.FC = () => {
                     <Ban className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-rose-800 font-bold mb-0.5">
-                        Banned in {ing.bannedIn.join(', ')}
+                        {t('bannedIn')} {ing.bannedIn.join(', ')}
                       </p>
                       <p className="text-[10px] text-rose-700 leading-tight">
                         This ingredient is prohibited in these regions due to safety concerns.
@@ -391,7 +425,7 @@ export const ResultsPage: React.FC = () => {
 
         <div className="pt-4">
           <Button fullWidth variant="outline" onClick={() => navigate('/scan')}>
-            Scan Another Product
+            {t('scanAnother')}
           </Button>
         </div>
       </div>
